@@ -10,9 +10,9 @@
       </div>
 
       <div class="action">
-        <button class="btn" @click="run">run</button>
-        <button class="btn" @click="pause">pause</button>
-        <button class="btn" @click="reset">reset</button>
+        <button class="btn" @click="run">RUN</button>
+        <button class="btn" @click="pause">PAUSE</button>
+        <button class="btn" @click="reset">RESET</button>
       </div>
 
       <div class="output">{{ output }}</div>
@@ -21,7 +21,7 @@
     <div class="modal" v-show="showModal">
       <div class="content">
         <input ref="asciiInp" type="text" placeholder="输入一个ASCII字符" v-model="asciiChar" maxlength="1">
-        <button class="btn" @click="confirm">确定</button>
+        <button class="btn" @click="confirm">YES</button>
       </div>
     </div>
   </div>
