@@ -31,8 +31,14 @@
 import { asciiMap, asciiArr } from './assets/ascii';
 import Stack from './assets/stack';
 
-const initialInput =
-  '++++++++++[>+>+++>+++++++>++++++++++<<<<-]>>>++.>+.+++++++..+++.<<++.>+++++++++++++++.>.+++.------.--------.<<+.<';
+const initialInput = `
+    这段代码会输出 Hello World!
+    ++++++++++[>+>+++>+++++++>+
+    +++++++++<<<<-]>>>++.>+.++
+    +++++..+++.<<++.>++++++++++
+    +++++.>.+++.------.--------.<
+    <+.<
+  `;
 
 export default {
   name: 'app',
@@ -51,7 +57,8 @@ export default {
   },
   computed: {
     inputCommands() {
-      return this.input.replace(/\s/g, '');
+      const reg = /[^><+-\][.,]*/g;
+      return this.input.replace(reg, '').replace(/[\d\w\s]*/g, '');
     },
     currentCommand() {
       return this.inputCommands.charAt(this.currentIndex);
@@ -84,9 +91,6 @@ export default {
       if (this.validate(command)) {
         const next = this.execute(command);
         next && this.currentIndex++;
-      } else {
-        this.reset();
-        alert('指令错误');
       }
 
       setTimeout(() => {
