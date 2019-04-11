@@ -159,6 +159,7 @@ export default {
     confirm() {
       this.cells[this.pointer] = asciiMap.get(this.asciiChar);
       this.showModal = false;
+      this.asciiChar = '';
       this.run();
     }
   }
