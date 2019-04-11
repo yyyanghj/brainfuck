@@ -134,7 +134,4 @@ asciiArr.forEach((val, index) => {
   asciiMap.set(val, index);
 });
 
-export default {
-  asciiMap,
-  asciiArr
-};
+export { asciiMap, asciiArr };

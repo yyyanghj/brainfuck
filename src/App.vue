@@ -6,163 +6,159 @@
       <textarea class="input" v-model="input"></textarea>
 
       <div class="wrapper">
-        <div class="cell" :class="{ current: pointIndex === index }" v-for="(val,index) of cells" :key="index">{{val}}</div>
+        <div class="cell" :class="{ current: pointer === index }" v-for="(val,index) of cells" :key="index">{{val}}</div>
       </div>
 
       <div class="action">
-        <button class="btn" @click="start">start</button>
-        <!-- <button class="btn" @click="pause">pause</button> -->
-        <input
-          ref="asciiInp"
-          class="ascii-inp"
-          type="text"
-          placeholder="输入一个ASCII字符"
-          v-model="asciiChar"
-          v-show="showAsciiInput"
-        >
-        <button class="btn" @click="confirm" v-show="showAsciiInput">确定</button>
+        <button class="btn" @click="run">run</button>
+        <button class="btn" @click="pause">pause</button>
+        <button class="btn" @click="reset">reset</button>
       </div>
 
       <div class="output">{{ output }}</div>
+    </div>
+
+    <div class="modal" v-show="showModal">
+      <div class="content">
+        <input ref="asciiInp" type="text" placeholder="输入一个ASCII字符" v-model="asciiChar" maxlength="1">
+        <button class="btn" @click="confirm">确定</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-// ++++++++++[>+>+++>+++++++>++++++++++<<<<-]>>>++.>+.+++++++..+++.<<++.>+++++++++++++++.>.+++.------.--------.<<+.<.
-import ascii from './assets/ascii';
-const { asciiMap, asciiArr } = ascii;
+import { asciiMap, asciiArr } from './assets/ascii';
+import Stack from './assets/stack';
 
-class Stack {
-  constructor() {
-    this.stack = [];
-  }
-
-  push(val) {
-    return this.stack.push(val);
-  }
-
-  pop() {
-    return this.stack.pop();
-  }
-
-  get size() {
-    return this.stack.length;
-  }
-
-  get top() {
-    return this.stack[this.size - 1];
-  }
-}
-
-const COMMANDS = {
-  '+': function() {
-    this.$set(this.cells, this.pointIndex, this.currentVal + 1);
-    return true;
-  },
-  '-': function() {
-    if (this.currentVal > 0) {
-      this.$set(this.cells, this.pointIndex, this.currentVal - 1);
-    }
-    return true;
-  },
-  '>': function() {
-    this.pointIndex++;
-    return true;
-  },
-  '<': function() {
-    this.pointIndex > 0 && this.pointIndex--;
-    return true;
-  },
-  '[': function() {
-    this.loopStack.push(this.readIndex);
-    if (this.currentVal === 0) {
-      while (this.currentChar !== ']') {
-        this.readIndex++;
-      }
-    }
-    return true;
-  },
-  ']': function() {
-    if (this.currentVal !== 0) {
-      this.readIndex = this.loopStack.pop();
-      return false;
-    }
-    return true;
-  },
-  ',': function() {
-    alert('输入一个ascii字符');
-    this.pause();
-    this.showAsciiInput = true;
-    this.$refs.asciiInp.focus();
-    return true;
-  },
-  '.': function() {
-    this.output += asciiArr[this.currentVal];
-    return true;
-  }
-};
+const initialInput =
+  '++++++++++[>+>+++>+++++++>++++++++++<<<<-]>>>++.>+.+++++++..+++.<<++.>+++++++++++++++.>.+++.------.--------.<<+.<';
 
 export default {
   name: 'app',
   components: {},
   data() {
     return {
-      timer: null,
-      input:
-        '++++++++++[>+>+++>+++++++>++++++++++<<<<-]>>>++.>+.+++++++..+++.<<++.>+++++++++++++++.>.+++.------.--------.<<+.<',
+      input: initialInput,
       output: '',
-      readIndex: 0,
-      pointIndex: 0,
+      currentIndex: 0,
+      pointer: 0,
       asciiChar: '',
-      showAsciiInput: false,
+      showModal: false,
       cells: Array(30).fill(0),
       loopStack: new Stack()
     };
   },
   computed: {
-    currentChar() {
-      return this.input.replace(/\s/g, '').charAt(this.readIndex);
+    inputCommands() {
+      return this.input.replace(/\s/g, '');
+    },
+    currentCommand() {
+      return this.inputCommands.charAt(this.currentIndex);
     },
     currentVal() {
-      return this.cells[this.pointIndex];
+      return this.cells[this.pointer];
     }
   },
   methods: {
-    start() {
-      if (!this.timer) {
-        this.output = '';
-        this.readIndex = 0;
-        this.run();
-      }
+    reset() {
+      this.input = '';
+      this.output = '';
+      this.currentIndex = 0;
+      this.cells.fill(0);
+      this.loopStack.clear();
     },
-    run() {
-      this.timer = setInterval(() => {
-        this.read();
-      }, 17);
-    },
+
     pause() {
-      this.isPause = !this.isPause;
+      this.isPause = true;
     },
-    read() {
-      if (this.isPause || !this.currentChar) {
-        this.timer = null;
+
+    run() {
+      const command = this.currentCommand;
+      this.isPause = false;
+
+      if (!command) {
         return;
       }
 
-      if (COMMANDS[this.currentChar]) {
-        const next = COMMANDS[this.currentChar].call(this);
-        next && this.readIndex++;
+      if (this.validate(command)) {
+        const next = this.execute(command);
+        next && this.currentIndex++;
       } else {
-        this.timer = null;
+        this.reset();
         alert('指令错误');
       }
+
+      setTimeout(() => {
+        !this.isPause && this.run();
+      }, 17);
     },
+
+    execute(command) {
+      switch (command) {
+        case '+':
+          this.$set(this.cells, this.pointer, this.currentVal + 1);
+          return true;
+
+        case '-':
+          if (this.currentVal > 0) {
+            this.$set(this.cells, this.pointer, this.currentVal - 1);
+          }
+          return true;
+
+        case '>':
+          this.pointer++;
+          return true;
+
+        case '<':
+          this.pointer > 0 && this.pointer--;
+          return true;
+
+        case '[':
+          // stack 推入循环起始索引
+          this.loopStack.push(this.currentIndex);
+          // 若当前指针为零,则跳转到后一个]
+          if (this.currentVal === 0) {
+            while (this.currentCommand !== ']') {
+              this.currentIndex++;
+            }
+          }
+          return true;
+
+        case ']':
+          // 若当前指针不为零,则跳转到前一个[
+          if (this.currentVal !== 0) {
+            // 回到循环起始索引处
+            this.currentIndex = this.loopStack.pop();
+            return false;
+          }
+          return true;
+
+        case ',':
+          this.pause();
+          this.showModal = true;
+          return true;
+
+        case '.':
+          this.output += asciiArr[this.currentVal];
+          return true;
+
+        default:
+          break;
+      }
+    },
+
+    validate(char) {
+      const chars = ['+', '-', '<', '>', '[', ']', ',', '.'];
+      if (chars.includes(char)) {
+        return true;
+      }
+      return false;
+    },
+
     confirm() {
-      const char = this.asciiChar.charAt(0);
-      this.cells[this.pointIndex] = asciiMap.get(char);
-      this.isPause = false;
-      this.showAsciiInput = false;
+      this.cells[this.pointer] = asciiMap.get(this.asciiChar);
+      this.showModal = false;
       this.run();
     }
   }
@@ -174,8 +170,15 @@ export default {
   padding: 0;
   margin: 0;
 }
+
+@bgColor: #f5f7f9;
+@fgColor: #48505b;
+@accentColor: #40b3ff;
+
 body {
   font-family: Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei';
+  background-color: #eee;
+  color: @fgColor;
 }
 .container {
   position: relative;
@@ -187,49 +190,43 @@ body {
     font-size: 36px;
   }
 
-  .input {
+  .input,
+  .output {
     display: block;
     width: 1000px;
-    margin: 25px auto;
+    margin: 50px auto;
     padding: 25px;
-    min-height: 300px;
-    border: 1px solid #39bae6;
+    min-height: 200px;
+    border: 1px solid @accentColor;
     border-radius: 5px;
     font-size: 18px;
     letter-spacing: 3px;
-    font-family: Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei';
-    background: #5b5b5b;
-    color: #ffffff;
+
+    background: @bgColor;
+    color: @fgColor;
     line-height: 20px;
   }
-  .output {
-    margin: 25px auto 0;
-    width: 1000px;
-    padding: 25px;
-    min-height: 150px;
-    border: 1px solid #39bae6;
-    border-radius: 5px;
-    font-size: 18px;
-    font-family: Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei';
-    background: #5b5b5b;
-    color: #ffffff;
-    line-height: 20px;
-  }
+
   .wrapper {
     margin: 25px auto 0;
     display: flex;
     flex-flow: row wrap;
+    border-top: 1px solid @fgColor;
+    border-left: 1px solid @fgColor;
 
     .cell {
       position: relative;
-      margin-top: 30px;
-      width: 30px;
-      height: 30px;
-      line-height: 30px;
-      text-align: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 36px;
+      height: 36px;
       font-size: 20px;
-      color: #39bae6;
-      border: 1px solid #888;
+      color: @accentColor;
+      background: @bgColor;
+      border-bottom: 1px solid @fgColor;
+      border-right: 1px solid @fgColor;
+
       &.current {
         &:after {
           content: '';
@@ -246,24 +243,55 @@ body {
       }
     }
   }
-  .btn {
-    margin-top: 25px;
-    margin-right: 25px;
-    width: 60px;
-    height: 36px;
-    outline: none;
-    border: none;
-    color: #000;
-    background-color: #f1f1f1;
+}
+.btn {
+  margin-top: 25px;
+  margin-right: 25px;
+  width: 88px;
+  height: 36px;
+  border-radius: 18px;
+  outline: none;
+  border: 1px solid @accentColor;
+  color: @accentColor;
+  background-color: transparent;
+  cursor: pointer;
+
+  &:hover {
+    color: #fff;
+    background-color: @accentColor;
   }
-  .ascii-inp {
+}
+
+.modal {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.5);
+  .content {
+    position: absolute;
+    width: 200px;
+    height: 100px;
+    padding: 24px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: @bgColor;
+  }
+
+  .btn {
+    margin: 15px auto;
+  }
+
+  input {
     width: 200px;
     height: 30px;
-    border: 1px solid #000;
-    border-radius: 5px;
     outline: none;
-    padding-left: 18px;
-    margin-right: 25px;
+    border-radius: 5px;
+    border: 1px solid @accentColor;
+    background: @bgColor;
+    text-indent: 16px;
   }
 }
 </style>
