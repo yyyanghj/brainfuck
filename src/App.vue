@@ -13,6 +13,9 @@
         <button class="btn" @click="run">RUN</button>
         <button class="btn" @click="pause">PAUSE</button>
         <button class="btn" @click="reset">RESET</button>
+
+        <label>SPEED:</label>
+        <input type="range" v-model="delay" max="100" min="20">
       </div>
 
       <div class="output">{{ output }}</div>
@@ -47,55 +50,51 @@ export default {
     return {
       input: initialInput,
       output: '',
+      delay: 60,
       currentIndex: 0,
       pointer: 0,
       asciiChar: '',
       showModal: false,
       cells: Array(30).fill(0),
-      loopStack: new Stack()
+      loopStack: new Stack(),
+      isPause: true
     };
   },
   computed: {
-    inputCommands() {
-      const reg = /[^><+-\][.,]*/g;
-      return this.input.replace(reg, '').replace(/[\d\w\s]*/g, '');
+    validInput() {
+      const chars = ['+', '-', '<', '>', '[', ']', ',', '.'];
+      return this.input.split('').filter(char => chars.includes(char));
     },
     currentCommand() {
-      return this.inputCommands.charAt(this.currentIndex);
+      return this.validInput[this.currentIndex];
     },
     currentVal() {
       return this.cells[this.pointer];
     }
   },
   methods: {
-    reset() {
-      this.input = '';
-      this.output = '';
-      this.currentIndex = 0;
-      this.cells.fill(0);
-      this.loopStack.clear();
+    run() {
+      this.isPause = false;
+      const command = this.currentCommand;
+
+      command && this.execute(command) && this.currentIndex++;
+
+      setTimeout(() => {
+        !this.isPause && this.run();
+      }, +this.delay);
     },
 
     pause() {
       this.isPause = true;
     },
 
-    run() {
-      const command = this.currentCommand;
-      this.isPause = false;
-
-      if (!command) {
-        return;
-      }
-
-      if (this.validate(command)) {
-        const next = this.execute(command);
-        next && this.currentIndex++;
-      }
-
-      setTimeout(() => {
-        !this.isPause && this.run();
-      }, 17);
+    reset() {
+      this.output = '';
+      this.currentIndex = 0;
+      this.pointer = 0;
+      this.cells = Array(30).fill(0);
+      this.loopStack.clear();
+      this.pause();
     },
 
     execute(command) {
@@ -152,14 +151,6 @@ export default {
       }
     },
 
-    validate(char) {
-      const chars = ['+', '-', '<', '>', '[', ']', ',', '.'];
-      if (chars.includes(char)) {
-        return true;
-      }
-      return false;
-    },
-
     confirm() {
       this.cells[this.pointer] = asciiMap.get(this.asciiChar);
       this.showModal = false;
@@ -198,18 +189,19 @@ body {
   .input,
   .output {
     display: block;
-    width: 1000px;
+    width: 100%;
+    min-height: 300px;
     margin: 50px auto;
     padding: 25px;
-    min-height: 200px;
     border: 1px solid @accentColor;
     border-radius: 5px;
     font-size: 18px;
     letter-spacing: 3px;
-
     background: @bgColor;
     color: @fgColor;
     line-height: 20px;
+    box-sizing: border-box;
+    resize: none;
   }
 
   .wrapper {
@@ -248,55 +240,79 @@ body {
       }
     }
   }
-}
-.btn {
-  margin-top: 25px;
-  margin-right: 25px;
-  width: 88px;
-  height: 36px;
-  border-radius: 18px;
-  outline: none;
-  border: 1px solid @accentColor;
-  color: @accentColor;
-  background-color: transparent;
-  cursor: pointer;
 
-  &:hover {
-    color: #fff;
-    background-color: @accentColor;
+  .action {
+    display: flex;
+    align-items: center;
+    margin-top: 30px;
   }
-}
-
-.modal {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  background: rgba(0, 0, 0, 0.5);
-  .content {
-    position: absolute;
-    width: 200px;
-    height: 100px;
-    padding: 24px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: @bgColor;
-  }
-
   .btn {
-    margin: 15px auto;
+    margin-right: 25px;
+    width: 88px;
+    height: 36px;
+    border-radius: 18px;
+    outline: none;
+    border: 1px solid @accentColor;
+    color: @accentColor;
+    background-color: transparent;
+    cursor: pointer;
+
+    &:hover {
+      color: #fff;
+      background-color: @accentColor;
+    }
   }
 
-  input {
-    width: 200px;
-    height: 30px;
+  input[type='range'] {
+    width: 160px;
+    height: 3px;
+    margin-left: 12px;
+    -webkit-appearance: none;
+    background: -webkit-linear-gradient(@accentColor, @accentColor) no-repeat;
     outline: none;
-    border-radius: 5px;
-    border: 1px solid @accentColor;
-    background: @bgColor;
-    text-indent: 16px;
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      background: #fff;
+      border-radius: 50%;
+      border: solid 1px @accentColor;
+      cursor: pointer;
+    }
+  }
+
+  .modal {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    .content {
+      position: absolute;
+      width: 200px;
+      height: 100px;
+      padding: 24px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: @bgColor;
+    }
+
+    .btn {
+      margin: 15px auto;
+    }
+
+    input {
+      width: 200px;
+      height: 30px;
+      outline: none;
+      border-radius: 5px;
+      border: 1px solid @accentColor;
+      background: @bgColor;
+      text-indent: 16px;
+    }
   }
 }
 </style>
