@@ -99,25 +99,29 @@ export default {
 
     execute(command) {
       switch (command) {
-        case '+':
+        case '+': {
           this.$set(this.cells, this.pointer, this.currentVal + 1);
           return true;
+        }
 
-        case '-':
+        case '-': {
           if (this.currentVal > 0) {
             this.$set(this.cells, this.pointer, this.currentVal - 1);
           }
           return true;
+        }
 
-        case '>':
+        case '>': {
           this.pointer++;
           return true;
+        }
 
-        case '<':
+        case '<': {
           this.pointer > 0 && this.pointer--;
           return true;
+        }
 
-        case '[':
+        case '[': {
           // stack 推入循环起始索引
           this.loopStack.push(this.currentIndex);
           // 若当前指针为零,则跳转到后一个]
@@ -127,8 +131,9 @@ export default {
             }
           }
           return true;
+        }
 
-        case ']':
+        case ']': {
           // 若当前指针不为零,则跳转到前一个[
           if (this.currentVal !== 0) {
             // 回到循环起始索引处
@@ -136,18 +141,21 @@ export default {
             return false;
           }
           return true;
+        }
 
-        case ',':
+        case ',': {
           this.pause();
           this.showModal = true;
           return true;
+        }
 
-        case '.':
+        case '.': {
           this.output += asciiArr[this.currentVal];
           return true;
+        }
 
         default:
-          break;
+          return true;
       }
     },
 
